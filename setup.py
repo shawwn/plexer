@@ -14,13 +14,14 @@ Print all #include statements in a C/C++ file?
 -----
 
     import plexer
-    lines = plexer.lex('#include "foo.h"\nint val = 42;\n', plexer.LexC)
+    lines = plexer.tokenize_lines(
+        '#include "foo.h"\nint val = 42;\n', plexer.lexers['c'])
     for line in lines:
-        if line[0]['val'] == "#include":
-            str = ""
+        if line[0]['value'] == '#include':
+            str = ''
             for token in line:
                 if token['type'] != plexer.TOKEN_NEWLINE:
-                    str = str + token['val']
+                    str = str + token['value']
             print str
 
 -----
@@ -47,7 +48,7 @@ def run_tests():
 
 setup(
     name='Plexer',
-    version='0.1.1',
+    version='0.2',
     url='http://github.com/shawnpresser/plexer/',
     license='MIT',
     author='Shawn Presser',

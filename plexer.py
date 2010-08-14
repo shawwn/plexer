@@ -2,15 +2,23 @@
 # Constants
 #==============================================================================
 
-TOKEN_NEWLINE     = 0
-TOKEN_WHITESPACE  = 1
-TOKEN_COMMENT     = 2
-TOKEN_NUMBER      = 3
-TOKEN_STRING      = 4
-TOKEN_SPECIAL     = 5 # special language characters such as { } [ ] + - * / etc
-TOKEN_IDENTIFIER  = 6
+class TYPE:
+    NEWLINE     = 0
+    WHITESPACE  = 1
+    COMMENT     = 2
+    NUMBER      = 3
+    STRING      = 4
+    SPECIAL     = 5 # special language characters such as { } [ ] + - * / etc
+    IDENTIFIER  = 6
 
-
+type_names = [
+    'newline',
+    'whitespace',
+    'comment',
+    'number',
+    'string',
+    'special',
+    'identifier']
 
 #==============================================================================
 # Error
@@ -282,11 +290,14 @@ def tokenize(s, lexer = lexers['c']):
     id_idx = 0
     id_end = -1
     def append_token(type, val):
-        return tokens.append({'type': type, 'value': val})
+        return tokens.append({
+            'type' : type,
+            'name': type_names[type],
+            'value': val})
 
     def add_token(type, s, idx, end):
         if id_end > 0:
-            append_token(TOKEN_IDENTIFIER, s[id_idx:id_end])
+            append_token(TYPE.IDENTIFIER, s[id_idx:id_end])
         append_token(type, s[idx:end])
 
     while idx < end:
@@ -295,7 +306,7 @@ def tokenize(s, lexer = lexers['c']):
         # comment?
         idx = idx + lexer.lex_comment.lex(s, idx, end)
         if idx != start:
-            add_token(TOKEN_COMMENT, s, start, idx)
+            add_token(TYPE.COMMENT, s, start, idx)
             id_idx = idx
             id_end = -1
             continue
@@ -303,7 +314,7 @@ def tokenize(s, lexer = lexers['c']):
         # newline?
         idx = idx + LexNewline.lex(s, idx, end)
         if idx != start:
-            add_token(TOKEN_NEWLINE, s, start, idx)
+            add_token(TYPE.NEWLINE, s, start, idx)
             id_idx = idx
             id_end = -1
             continue
@@ -311,7 +322,7 @@ def tokenize(s, lexer = lexers['c']):
         # whitespace?
         idx = idx + LexWhitespace.lex(s, idx, end)
         if idx != start:
-            add_token(TOKEN_WHITESPACE, s, start, idx)
+            add_token(TYPE.WHITESPACE, s, start, idx)
             id_idx = idx
             id_end = -1
             continue
@@ -319,7 +330,7 @@ def tokenize(s, lexer = lexers['c']):
         # special?
         if lexer.special_chars.find(s[idx]) >= 0:
             idx = idx + 1
-            add_token(TOKEN_SPECIAL, s, start, idx)
+            add_token(TYPE.SPECIAL, s, start, idx)
             id_idx = idx
             id_end = -1
             continue
@@ -327,7 +338,7 @@ def tokenize(s, lexer = lexers['c']):
         # number?
         idx = idx + lexer.lex_number.lex(s, idx, end)
         if idx != start:
-            add_token(TOKEN_NUMBER, s, start, idx)
+            add_token(TYPE.NUMBER, s, start, idx)
             id_idx = idx
             id_end = -1
             continue
@@ -335,7 +346,7 @@ def tokenize(s, lexer = lexers['c']):
         # string?
         idx = idx + lexer.lex_string.lex(s, idx, end)
         if idx != start:
-            add_token(TOKEN_STRING, s, start, idx)
+            add_token(TYPE.STRING, s, start, idx)
             id_idx = idx
             id_end = -1
             continue
@@ -345,7 +356,7 @@ def tokenize(s, lexer = lexers['c']):
         id_end = idx
 
     if id_end > 0:
-        append_token(TOKEN_IDENTIFIER, s[id_idx:id_end])
+        append_token(TYPE.IDENTIFIER, s[id_idx:id_end])
 
     return tokens
 
@@ -357,7 +368,7 @@ def tokenize_lines(s,
     lines = []
     line_tokens = []
     for token in tokens:
-        if token['type'] == TOKEN_NEWLINE:
+        if token['type'] == TYPE.NEWLINE:
             if not strip_newlines:
                 line_tokens.append(token)
             lines.append(line_tokens)
