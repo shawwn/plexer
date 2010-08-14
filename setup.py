@@ -47,14 +47,14 @@ def run_tests():
 
 setup(
     name='Plexer',
-    version='0.1',
+    version='0.1.1',
     url='http://github.com/shawnpresser/plexer/',
     license='MIT',
     author='Shawn Presser',
     author_email='shawnpresser@gmail.com',
     description='A simple lexer to tokenize text (for example, a C file)',
     keywords='lexer tokenize tokenization parser text',
-    py_modules=['plexer'],
+    py_modules=['distribute_setup','plexer'],
     platforms='any',
     classifiers=[
         'Development Status :: 4 - Beta',

@@ -3,3 +3,6 @@
 *.egg
 *.egg-info
 *.swp
+*.zip
+*.tar.gz
+build
