@@ -9,9 +9,10 @@
     :license: MIT, see LICENSE for more details.
 """
 import plexer
+from plexer import TYPE, tokenize_lines
 
 def print_includes(s):
-    lines = plexer.tokenize_lines(s, plexer.lexers['c'])
+    lines = tokenize_lines(s, 'c')
     for line in lines:
         if line[0]['value'] == '#include':
             p = ''

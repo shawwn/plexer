@@ -1,7 +1,4 @@
-#==============================================================================
-# Constants
-#==============================================================================
-
+# constants.
 class TYPE:
     NEWLINE     = 0
     WHITESPACE  = 1
@@ -11,37 +8,59 @@ class TYPE:
     SPECIAL     = 5 # special language characters such as { } [ ] + - * / etc
     IDENTIFIER  = 6
 
-type_names = [
-    'newline',
-    'whitespace',
-    'comment',
-    'number',
-    'string',
-    'special',
-    'identifier']
+TYPE_NAMES = {
+    TYPE.NEWLINE: 'newline',
+    TYPE.WHITESPACE: 'whitespace',
+    TYPE.COMMENT: 'comment',
+    TYPE.NUMBER: 'number',
+    TYPE.STRING: 'string',
+    TYPE.SPECIAL: 'special',
+    TYPE.IDENTIFIER: 'identifier'
+}
+
+# member variables.
+LEXERS = { }
+
+#-------------------
+# register_lexer(some_lexer, ['ext1', 'ext2'])
+#-------------------
+def register_lexer(file_extensions, lexer):
+    """Associate a lexer with a list of file extensions."""
+
+    if isinstance(file_extensions, str):
+        file_extensions = [file_extensions]
+
+    for ext in file_extensions:
+        if LEXERS.get(ext):
+            print 'WARNING: LEXERS[' + ext + '] is being replaced.'
+        LEXERS[ext] = lexer
+
+# alias.
+add_lexer = register_lexer
 
 #==============================================================================
-# Error
+# LexError
 #==============================================================================
-class Error(Exception):
-    """Base class for exceptions in this module."""
-    pass
+class LexError(Exception):
 
-
-#==============================================================================
-# LexerError
-#==============================================================================
-class LexerError(Error):
-    """Exception raised for errors in the input stream.
-
-    Attributes:
-        ctx -- the current context of the lexer
-        msg -- explanation of the Error
-    """
-
-    def __init__(self, ctx, msg):
-        self.ctx = ctx
+    def __init__(self, msg, ctx={}):
         self.msg = msg
+
+        if 'line' in ctx:
+            self.line = ctx['line']
+            self.row = self.line
+
+            if 'idx' in ctx and 'line_idx' in ctx:
+                self.col = ctx['idx'] - ctx['line_idx'] + 1
+
+#==============================================================================
+# LexNothing:
+#==============================================================================
+class LexNothing:
+    @staticmethod
+    def lex(s, idx, end, ctx):
+        return 0
+
 
 #==============================================================================
 # LexNewline:
@@ -50,7 +69,7 @@ class LexNewline:
     """Lex a newline."""
 
     @staticmethod
-    def lex(s, idx, end):
+    def lex(s, idx, end, ctx):
 
         # UNIX-style newline.
         if s[idx] == '\n':
@@ -71,7 +90,7 @@ class LexWhitespace:
     """Lex whitespace."""
 
     @staticmethod
-    def lex(s, idx, end):
+    def lex(s, idx, end, ctx):
         if s[idx] == ' ' or \
            s[idx] == '\t':
             return 1
@@ -81,89 +100,39 @@ class LexWhitespace:
 # Lexer
 #==============================================================================
 class Lexer:
-    """Defines how the input stream is divided into tokens.
-
-    """
+    """Determines how to divide the input stream into tokens."""
 
     def __init__(self, 
-                 lex_comment,
-                 lex_number,
-                 lex_string,
-                 special_chars,
-                 identifier_chars):
+                 lex_comment=LexNothing,
+                 lex_number=LexNothing,
+                 lex_string=LexNothing,
+                 special_chars='',
+                 identifier_chars=''):
         self.lex_comment = lex_comment
         self.lex_number = lex_number
         self.lex_string = lex_string
         self.special_chars = special_chars
         self.identifier_chars = identifier_chars
 
-
 #******************************************************************************
-# C lexer rules
+# Basic Lexer
 #******************************************************************************
 
 #==============================================================================
-# LexCComment
-#==============================================================================
-class LexCComment:
-    """Lex a C comment."""
-
-    @staticmethod
-    def lex(s, idx, end):
-
-        if s[idx] != '/':
-            return 0
-
-        if idx + 1 >= end:
-            return 0
-
-        start = idx
-        idx = idx + 1
-
-        # C line comment
-        if s[idx] == '/':
-            idx = idx + 1
-            while idx < end:
-                # we're done if we've hit a UNIX-style newline.
-                if s[idx] == '\n':
-                    break
-                # we're done if we've hit a Window-style newline.
-                if s[idx] == '\r':
-                    if idx + 1 < end and s[idx+1] == '\n':
-                        break
-                idx = idx + 1
-            return idx - start
-
-        # C block comment
-        if s[idx] == '*':
-            idx = idx + 1
-            while idx < end:
-                if s[idx] == '*':
-                    if idx + 1 < end and s[idx+1] == '/':
-                        return (idx + 2) - start
-                idx = idx + 1
-            # if we couldn't find the termination of the block comment, then
-            # raise an exception.
-            raise Error("Unterminated C block comment")
-
-        return 0
-
-#==============================================================================
-# LexCNumber
+# LexBasicNumber
 #==============================================================================
 
-class LexCNumber:
-    """Lex a C integer, float, or double literal.  Examples:
+class LexBasicNumber:
+    """Lex an integer, decimal, or decimal + exponent.  Examples:
 
         2
-        .9f or .9F
-        .9e2 or .9E2
-        2.5e-3f
-        -51UL (yes, this is valid C)
+        .9
+        .9e2
+        -42
     """
 
     @staticmethod
-    def lex(s, idx, end):
+    def lex(s, idx, end, ctx):
         start = idx
         num_digits = 0
         num_decimals = 0
@@ -182,6 +151,7 @@ class LexCNumber:
 
         # skip over the decimal component.
         if idx < end and s[idx] == '.':
+
             # skip the decimal character.
             is_integer = False
             decimal_idx = idx
@@ -225,8 +195,150 @@ class LexCNumber:
                 if idx - num_start <= 0:
                     idx = exp_start
                 else:
-                    # otherwise, there is an actual exponent, so we are no longer
-                    # an integer.
+                    # otherwise, there is an actual exponent, so we are no
+                    # longer an integer.
+                    is_integer = False
+
+        return idx - start
+
+# associate the basic lexer with various filetypes.
+add_lexer(
+    ['', 'txt'],
+    Lexer(lex_number=LexBasicNumber))
+
+#******************************************************************************
+# C lexer
+#******************************************************************************
+
+#==============================================================================
+# LexCComment
+#==============================================================================
+class LexCComment:
+    """Lex a C comment."""
+
+    @staticmethod
+    def lex(s, idx, end, ctx):
+
+        if s[idx] != '/':
+            return 0
+
+        if idx + 1 >= end:
+            return 0
+
+        start = idx
+        idx = idx + 1
+
+        # C line comment
+        if s[idx] == '/':
+            idx = idx + 1
+            while idx < end:
+                # we're done if we've hit a UNIX-style newline.
+                if s[idx] == '\n':
+                    break
+                # we're done if we've hit a Window-style newline.
+                if s[idx] == '\r':
+                    if idx + 1 < end and s[idx+1] == '\n':
+                        break
+                idx = idx + 1
+            return idx - start
+
+        # C block comment
+        if s[idx] == '*':
+            idx = idx + 1
+            while idx < end:
+                if s[idx] == '*':
+                    if idx + 1 < end and s[idx+1] == '/':
+                        return (idx + 2) - start
+                idx = idx + 1
+            # if we couldn't find the termination of the block comment, then
+            # raise an exception.
+            raise LexError("Unterminated C block comment", {
+                'idx': start,
+                'line': ctx['line'],
+                'line_idx': ctx['line_idx']})
+
+        return 0
+
+#==============================================================================
+# LexCNumber
+#==============================================================================
+
+class LexCNumber:
+    """Lex a C integer, float, or double literal.  Examples:
+
+        2
+        .9f or .9F
+        .9e2 or .9E2
+        2.5e-3f
+        -51UL (yes, this is valid C)
+    """
+
+    @staticmethod
+    def lex(s, idx, end, ctx):
+        start = idx
+        num_digits = 0
+        num_decimals = 0
+        decimal_idx = None
+        is_integer = True
+
+        # skip over the negation.
+        if s[idx] == '-':
+            idx = idx + 1
+
+        # skip over the integer component.
+        num_start = idx
+        while idx < end and s[idx] >= '0' and s[idx] <= '9':
+            idx = idx + 1
+        num_digits = idx - num_start
+
+        # skip over the decimal component.
+        if idx < end and s[idx] == '.':
+
+            # skip the decimal character.
+            is_integer = False
+            decimal_idx = idx
+            idx = idx + 1
+
+            # skip the decimal numbers.
+            num_start = idx
+            while idx < end and s[idx] >= '0' and s[idx] <= '9':
+                idx = idx + 1
+            num_decimals = idx - num_start
+            num_digits = num_digits + num_decimals
+
+        # if we have no digits, then abort.
+        if num_digits == 0:
+            return 0
+
+        # do we have an exponent?
+        if idx < end and (s[idx] == 'e' or s[idx] == 'E'):
+
+            # we must either have no decimal character or at least one
+            # decimal digit to have an exponent.
+            if decimal_idx == None or num_decimals > 0:
+
+                # save the starting index of the exponent.
+                exp_start = idx
+
+                # skip over the exponent character.
+                idx = idx + 1
+
+                # skip over the exponent negation.
+                if idx < end and s[idx] == '-':
+                    idx = idx + 1
+
+                # skip over the exponent integer.
+                num_start = idx
+                while idx < end and s[idx] >= '0' and s[idx] <= '9':
+                    idx = idx + 1
+
+                # if there is no exponent integer, then there is no exponent,
+                # so rewind.
+                if idx - num_start <= 0:
+                    idx = exp_start
+                else:
+                    # otherwise, there is an actual exponent, so we are no
+                    # longer an integer.
                     is_integer = False
 
         if is_integer:
@@ -251,7 +363,7 @@ class LexCString:
     """Lex a C string."""
 
     @staticmethod
-    def lex(s, idx, end):
+    def lex(s, idx, end, ctx):
         if s[idx] != '"':
             return 0
 
@@ -265,46 +377,58 @@ class LexCString:
             idx = idx + 1
 
         # if no closing quote could be found, raise an exception.
-        raise Error("String not terminated")
+        raise LexError("String not terminated", {
+                'idx': start,
+                'line': ctx['line'],
+                'line_idx': ctx['line_idx']})
+
+# associate the c lexer with various filetypes.
+add_lexer(['c', 'h', 'cpp', 'hpp'],
+          Lexer(
+              lex_comment=LexCComment,
+              lex_number=LexCNumber,
+              lex_string=LexCString,
+              special_chars=".,:;!=-+/*&<>()[]{}",
+              identifier_chars="_"))
 
 #******************************************************************************
 # lex
 #******************************************************************************
 
-lexers = {
-    'c': Lexer(
-        LexCComment,
-        LexCNumber,
-        LexCString,
-        ".,:;!=-+/*&<>()[]{}",
-        "_")
-}
-
-def tokenize(s, lexer = lexers['c']):
+def tokenize(s,
+             lexer='cpp'):
     idx = 0
     end = len(s)
     lines = []
     tokens = []
+    ctx = {'line': 1, 'line_idx': 0}
+
+    # lookup lexer.
+    ext = lexer.lower()
+    if not ext in LEXERS:
+        raise LexError("No lexer associated with '" + ext + "', use add_lexer")
+    lexer = LEXERS[ext]
 
     # idenfier index / end
     id_idx = 0
     id_end = -1
-    def append_token(type, val):
+    def append_token(type, idx, val):
         return tokens.append({
             'type' : type,
-            'name': type_names[type],
-            'value': val})
+            'name': TYPE_NAMES[type],
+            'value': val,
+            'line' : ctx['line']})
 
     def add_token(type, s, idx, end):
         if id_end > 0:
-            append_token(TYPE.IDENTIFIER, s[id_idx:id_end])
-        append_token(type, s[idx:end])
+            append_token(TYPE.IDENTIFIER, id_idx, s[id_idx:id_end])
+        append_token(type, idx, s[idx:end])
 
     while idx < end:
         start = idx
 
         # comment?
-        idx = idx + lexer.lex_comment.lex(s, idx, end)
+        idx = idx + lexer.lex_comment.lex(s, idx, end, ctx)
         if idx != start:
             add_token(TYPE.COMMENT, s, start, idx)
             id_idx = idx
@@ -312,15 +436,17 @@ def tokenize(s, lexer = lexers['c']):
             continue
 
         # newline?
-        idx = idx + LexNewline.lex(s, idx, end)
+        idx = idx + LexNewline.lex(s, idx, end, ctx)
         if idx != start:
             add_token(TYPE.NEWLINE, s, start, idx)
+            ctx['line'] = ctx['line'] + 1
+            ctx['line_idx'] = idx
             id_idx = idx
             id_end = -1
             continue
 
         # whitespace?
-        idx = idx + LexWhitespace.lex(s, idx, end)
+        idx = idx + LexWhitespace.lex(s, idx, end, ctx)
         if idx != start:
             add_token(TYPE.WHITESPACE, s, start, idx)
             id_idx = idx
@@ -336,7 +462,7 @@ def tokenize(s, lexer = lexers['c']):
             continue
 
         # number?
-        idx = idx + lexer.lex_number.lex(s, idx, end)
+        idx = idx + lexer.lex_number.lex(s, idx, end, ctx)
         if idx != start:
             add_token(TYPE.NUMBER, s, start, idx)
             id_idx = idx
@@ -344,7 +470,7 @@ def tokenize(s, lexer = lexers['c']):
             continue
 
         # string?
-        idx = idx + lexer.lex_string.lex(s, idx, end)
+        idx = idx + lexer.lex_string.lex(s, idx, end, ctx)
         if idx != start:
             add_token(TYPE.STRING, s, start, idx)
             id_idx = idx
@@ -356,14 +482,14 @@ def tokenize(s, lexer = lexers['c']):
         id_end = idx
 
     if id_end > 0:
-        append_token(TYPE.IDENTIFIER, s[id_idx:id_end])
+        append_token(TYPE.IDENTIFIER, id_idx, s[id_idx:id_end])
 
     return tokens
 
 
 def tokenize_lines(s,
-              lexer = lexers['c'],
-              strip_newlines = True):
+                   strip_newlines=True,
+                   lexer='cpp'):
     tokens = tokenize(s, lexer)
     lines = []
     line_tokens = []

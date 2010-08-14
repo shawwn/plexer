@@ -10,8 +10,7 @@
 import os
 import sys
 import unittest
-import plexer
-from plexer import TYPE
+from plexer import LexError, TYPE, tokenize_lines
 
 example_path = os.path.join(os.path.dirname(__file__), '..', 'examples')
 sys.path.append(os.path.join(example_path, 'print_c_includes'))
@@ -19,9 +18,9 @@ sys.path.append(os.path.join(example_path, 'print_c_includes'))
 class BasicFunctionalityTestCase(unittest.TestCase):
 
     def test_parse_includes(self):
-        lines = plexer.tokenize_lines(
+        lines = tokenize_lines(
             '#include <stdio.h>\n#include "myfile.h"\n',
-            lexer=plexer.lexers['c'])
+            lexer='c')
         assert len(lines) == 2
         assert lines[0][0]['value'] == '#include'
 
@@ -53,6 +52,17 @@ class BasicFunctionalityTestCase(unittest.TestCase):
                 token = line[j]
                 assert token['type'] == verify_token_types[i][j]
                 assert token['name'] == verify_token_type_names[i][j]
+
+
+    def test_fail_parsing_c_block_comment(self):
+        try:
+            lines = tokenize_lines(
+                '#include <stdio.h>\n#int i = 42; /* test \n',
+                lexer='c')
+        except LexError as e:
+            assert e.row == 2
+            assert e.col == 14
+            #print 'LexError at ' + str(e.row) + ',' + str(e.col)
 
 def suite():
     import print_c_includes_tests 
