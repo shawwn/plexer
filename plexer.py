@@ -367,6 +367,16 @@ class LexCString:
         if s[idx] != '"':
             return 0
 
+        # catch the following: '\"'
+        if idx > 0:
+            if s[idx-1] == '\\':
+                return 0
+
+        # catch the following: '"'
+        if idx > 0 and idx < end-1:
+            if s[idx-1] == "'" and s[idx+1] == "'":
+                return 0
+
         # find the closing quote.
         start = idx
         idx = idx + 1
@@ -462,12 +472,13 @@ def tokenize(s,
             continue
 
         # number?
-        idx = idx + lexer.lex_number.lex(s, idx, end, ctx)
-        if idx != start:
-            add_token(TYPE.NUMBER, s, start, idx)
-            id_idx = idx
-            id_end = -1
-            continue
+        if id_end <= 0:
+            idx = idx + lexer.lex_number.lex(s, idx, end, ctx)
+            if idx != start:
+                add_token(TYPE.NUMBER, s, start, idx)
+                id_idx = idx
+                id_end = -1
+                continue
 
         # string?
         idx = idx + lexer.lex_string.lex(s, idx, end, ctx)
