@@ -46,7 +46,7 @@ def run_tests():
 
 setup(
     name='Plexer',
-    version='0.3.1',
+    version='1.0.0',
     url='http://github.com/shawnpresser/plexer/',
     license='MIT',
     author='Shawn Presser',
