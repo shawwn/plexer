@@ -50,8 +50,8 @@ class LexError(Exception):
             self.line = ctx['line']
             self.row = self.line
 
-            if 'idx' in ctx and 'line_idx' in ctx:
-                self.col = ctx['idx'] - ctx['line_idx'] + 1
+            if 'idx' in ctx and 'pos' in ctx:
+                self.col = ctx['idx'] - ctx['pos'] + 1
 
 #==============================================================================
 # LexNothing:
@@ -246,6 +246,8 @@ class LexCComment:
         if s[idx] == '*':
             idx = idx + 1
             while idx < end:
+                if s[idx] == '\n':
+                    ctx['line'] = ctx['line'] + 1
                 if s[idx] == '*':
                     if idx + 1 < end and s[idx+1] == '/':
                         return (idx + 2) - start
@@ -255,7 +257,7 @@ class LexCComment:
             raise LexError("Unterminated C block comment", {
                 'idx': start,
                 'line': ctx['line'],
-                'line_idx': ctx['line_idx']})
+                'pos': ctx['pos']})
 
         return 0
 
@@ -390,7 +392,7 @@ class LexCString:
         raise LexError("String not terminated", {
                 'idx': start,
                 'line': ctx['line'],
-                'line_idx': ctx['line_idx']})
+                'pos': ctx['pos']})
 
 # associate the c lexer with various filetypes.
 add_lexer(['c', 'h', 'cpp', 'hpp'],
@@ -411,7 +413,7 @@ def tokenize(s,
     end = len(s)
     lines = []
     tokens = []
-    ctx = {'line': 1, 'line_idx': 0}
+    ctx = {'line': 1, 'column': 1, 'pos': 0, 'offset': 0}
 
     # lookup lexer.
     ext = lexer.lower()
@@ -424,10 +426,10 @@ def tokenize(s,
     id_end = -1
     def append_token(type, idx, val):
         return tokens.append({
-            'type' : type,
-            'name': TYPE_NAMES[type],
+            'type': TYPE_NAMES[type],
             'value': val,
-            'line' : ctx['line']})
+            'line': ctx['line'],
+            'column': ctx['column']})
 
     def add_token(type, s, idx, end):
         if id_end > 0:
@@ -436,6 +438,8 @@ def tokenize(s,
 
     while idx < end:
         start = idx
+        ctx['pos'] = idx
+        ctx['column'] = id_idx - ctx['offset'] + 1
 
         # comment?
         idx = idx + lexer.lex_comment.lex(s, idx, end, ctx)
@@ -450,7 +454,7 @@ def tokenize(s,
         if idx != start:
             add_token(TYPE.NEWLINE, s, start, idx)
             ctx['line'] = ctx['line'] + 1
-            ctx['line_idx'] = idx
+            ctx['offset'] = idx
             id_idx = idx
             id_end = -1
             continue
@@ -504,8 +508,9 @@ def tokenize_lines(s,
     tokens = tokenize(s, lexer)
     lines = []
     line_tokens = []
+    nl = TYPE_NAMES[TYPE.NEWLINE]
     for token in tokens:
-        if token['type'] == TYPE.NEWLINE:
+        if token['type'] == nl:
             if not strip_newlines:
                 line_tokens.append(token)
             lines.append(line_tokens)
@@ -519,3 +524,11 @@ def tokenize_lines(s,
 
     return lines
 
+if __name__ == '__main__':
+    import sys
+    filename = sys.argv[1]
+    with open(filename) as f:
+        lines = tokenize_lines(f.read())
+    from pprint import pprint as pp
+    filtered = [x[i] for x in lines for i in xrange(len(x)) if x[i]['type'] != 'whitespace']
+    pp(filtered)
