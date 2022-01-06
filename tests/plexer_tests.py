@@ -50,7 +50,8 @@ class BasicFunctionalityTestCase(unittest.TestCase):
             line = lines[i]
             for j in range(len(line)):
                 token = line[j]
-                assert token['type'] == verify_token_type_names[i][j]
+                assert token['type'] == verify_token_types[i][j]
+                assert token['name'] == verify_token_type_names[i][j]
 
 
     def test_fail_parsing_c_block_comment(self):

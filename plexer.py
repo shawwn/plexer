@@ -441,7 +441,8 @@ def tokenize(s,
     id_end = -1
     def append_token(type, idx, val):
         return tokens.append({
-            'type': TYPE_NAMES[type],
+            'type': type,
+            'name': TYPE_NAMES[type],
             'value': val,
             'line': ctx['line'],
             'column': ctx['column']})
@@ -523,9 +524,8 @@ def tokenize_lines(s,
     tokens = tokenize(s, lexer)
     lines = []
     line_tokens = []
-    nl = TYPE_NAMES[TYPE.NEWLINE]
     for token in tokens:
-        if token['type'] == nl:
+        if token['type'] == TYPE.NEWLINE:
             if not strip_newlines:
                 line_tokens.append(token)
             lines.append(line_tokens)
