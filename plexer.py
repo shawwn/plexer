@@ -32,7 +32,7 @@ def register_lexer(file_extensions, lexer):
 
     for ext in file_extensions:
         if LEXERS.get(ext):
-            print 'WARNING: LEXERS[' + ext + '] is being replaced.'
+            print('WARNING: LEXERS[' + ext + '] is being replaced.')
         LEXERS[ext] = lexer
 
 # alias.
@@ -530,5 +530,5 @@ if __name__ == '__main__':
     with open(filename) as f:
         lines = tokenize_lines(f.read())
     from pprint import pprint as pp
-    filtered = [x[i] for x in lines for i in xrange(len(x)) if x[i]['type'] != 'whitespace']
+    filtered = [x[i] for x in lines for i in range(len(x)) if x[i]['type'] != 'whitespace']
     pp(filtered)

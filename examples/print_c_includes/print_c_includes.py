@@ -18,15 +18,15 @@ def print_includes(s):
             p = ''
             for token in line:
                 p = p + token['value']
-            print p
+            print(p)
 
 if __name__ == '__main__':
     import sys
     if len(sys.argv) < 2:
-        print "Usage: print_c_includes.py <C/C++ file name>"
+        print("Usage: print_c_includes.py <C/C++ file name>")
     else:
         try:
             print_includes(open(sys.argv[1], 'r').read())
         except IOError:
-            print "Could not open file '" + sys.argv[1] + "' for reading."
+            print("Could not open file '" + sys.argv[1] + "' for reading.")
 
