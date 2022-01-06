@@ -1,0 +1,17 @@
+[tool.poetry]
+name = "Plexer"
+version = "1.0.0"
+readme = "README.md"
+homepage = "https://github.com/shawwn/plexer"
+description = "A simple lexer to tokenize text (e.g. a C file)"
+authors = ["Shawn Presser"]
+license = "MIT"
+
+[tool.poetry.dependencies]
+python = "^3.6"
+
+[tool.poetry.urls]
+"Shawn's Website" = "https://www.shawwn.com"
+"Support me on Patreon" = "https://www.patreon.com/shawwn"
+"@theshawwn on Twitter" = "https://www.twitter.com/theshawwn"
+"sillysaurusx on Hacker News" = "https://news.ycombinator.com/threads?id=sillysaurusx"
