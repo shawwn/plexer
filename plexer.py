@@ -38,20 +38,41 @@ def register_lexer(file_extensions, lexer):
 # alias.
 add_lexer = register_lexer
 
+def point(ctx: dict, s: str):
+    return ctx['pos']
+
+def line(ctx: dict, s: str):
+    pt = point(ctx, s)
+    return 1 + s[0:pt].count('\n')
+
+def column(ctx: dict, s: str):
+    pt = point(ctx, s)
+    s2 = s[0:pt]
+    i = s2.rfind('\n')
+    if i >= 0:
+        s2 = s2[i+1:]
+    return 1 + len(s2)
+
 #==============================================================================
 # LexError
 #==============================================================================
 class LexError(Exception):
 
-    def __init__(self, msg, ctx={}):
+    def __init__(self, msg, ctx: dict, s: str):
+        super().__init__(msg)
         self.msg = msg
+        self.ctx = dict(ctx)
+        self.s = s
 
-        if 'line' in ctx:
-            self.line = ctx['line']
-            self.row = self.line
+    @property
+    def row(self):
+        return line(self.ctx, self.s)
 
-            if 'idx' in ctx and 'pos' in ctx:
-                self.col = ctx['idx'] - ctx['pos'] + 1
+    @property
+    def col(self):
+        return column(self.ctx, self.s)
+
+
 
 #==============================================================================
 # LexNothing:
@@ -254,10 +275,7 @@ class LexCComment:
                 idx = idx + 1
             # if we couldn't find the termination of the block comment, then
             # raise an exception.
-            raise LexError("Unterminated C block comment", {
-                'idx': start,
-                'line': ctx['line'],
-                'pos': ctx['pos']})
+            raise LexError("Unterminated C block comment", ctx, s)
 
         return 0
 
@@ -389,10 +407,7 @@ class LexCString:
             idx = idx + 1
 
         # if no closing quote could be found, raise an exception.
-        raise LexError("String not terminated", {
-                'idx': start,
-                'line': ctx['line'],
-                'pos': ctx['pos']})
+        raise LexError("String not terminated", ctx, s)
 
 # associate the c lexer with various filetypes.
 add_lexer(['c', 'h', 'cpp', 'hpp'],
@@ -418,7 +433,7 @@ def tokenize(s,
     # lookup lexer.
     ext = lexer.lower()
     if not ext in LEXERS:
-        raise LexError("No lexer associated with '" + ext + "', use add_lexer")
+        raise LexError("No lexer associated with '" + ext + "', use add_lexer", ctx, s)
     lexer = LEXERS[ext]
 
     # idenfier index / end

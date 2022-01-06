@@ -10,7 +10,7 @@
 import os
 import sys
 import unittest
-from plexer import LexError, TYPE, tokenize_lines
+from plexer import LexError, TYPE, TYPE_NAMES, tokenize_lines
 
 example_path = os.path.join(os.path.dirname(__file__), '..', 'examples')
 sys.path.append(os.path.join(example_path, 'print_c_includes'))
@@ -50,8 +50,7 @@ class BasicFunctionalityTestCase(unittest.TestCase):
             line = lines[i]
             for j in range(len(line)):
                 token = line[j]
-                assert token['type'] == verify_token_types[i][j]
-                assert token['name'] == verify_token_type_names[i][j]
+                assert token['type'] == verify_token_type_names[i][j]
 
 
     def test_fail_parsing_c_block_comment(self):
@@ -62,15 +61,16 @@ class BasicFunctionalityTestCase(unittest.TestCase):
         except LexError as e:
             assert e.row == 2
             assert e.col == 14
-            #print 'LexError at ' + str(e.row) + ',' + str(e.col)
 
-def suite():
-    import print_c_includes_tests 
-    suite = unittest.TestSuite()
-    suite.addTest(unittest.makeSuite(BasicFunctionalityTestCase))
-    suite.addTest(unittest.makeSuite(print_c_includes_tests.BasicFunctionalityTestCase))
-    return suite
+
+# def suite():
+#     import print_c_includes_tests
+#     suite = unittest.TestSuite()
+#     suite.addTest(unittest.makeSuite(BasicFunctionalityTestCase))
+#     suite.addTest(unittest.makeSuite(print_c_includes_tests.BasicFunctionalityTestCase))
+#     return suite
 
 
 if __name__ == '__main__':
-    unittest.main(defaultTest='suite')
+    # unittest.main(defaultTest='suite')
+    unittest.main()
