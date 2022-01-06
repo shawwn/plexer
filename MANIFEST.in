@@ -1,9 +1,0 @@
-include README LICENSE AUTHORS
-recursive-include tests *
-recursive-include examples *
-recursive-exclude tests *.swp
-recursive-exclude tests *.pyc
-recursive-exclude tests *.pyo
-recursive-exclude examples *.swp
-recursive-exclude examples *.pyc
-recursive-exclude examples *.pyo
