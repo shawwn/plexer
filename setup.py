@@ -5,7 +5,7 @@ modules = \
 ['plexer']
 setup_kwargs = {
     'name': 'plexer',
-    'version': '1.0.0',
+    'version': '1.1.0',
     'description': 'A simple lexer to tokenize text (e.g. a C file)',
     'long_description': '',
     'author': 'Shawn Presser',

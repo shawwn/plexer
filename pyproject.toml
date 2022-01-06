@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "Plexer"
-version = "1.0.0"
+version = "1.1.0"
 readme = "README.md"
 homepage = "https://github.com/shawwn/plexer"
 description = "A simple lexer to tokenize text (e.g. a C file)"
