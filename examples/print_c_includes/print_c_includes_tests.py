@@ -14,3 +14,6 @@ class BasicFunctionalityTestCase(unittest.TestCase):
     def test_print_includes(self):
         print_c_includes.print_includes(
             '#include <stdio.h>\n#include <stdlib.h>\nint i = 42;\n')
+
+if __name__ == '__main__':
+    unittest.main()

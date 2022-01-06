@@ -14,11 +14,12 @@ from plexer import TYPE, tokenize_lines
 def print_includes(s):
     lines = tokenize_lines(s, 'c')
     for line in lines:
-        if line[0]['value'] == '#include':
-            p = ''
-            for token in line:
-                p = p + token['value']
-            print(p)
+        if line:
+            if line[0]['value'] == '#include':
+                p = ''
+                for token in line:
+                    p = p + token['value']
+                print(p)
 
 if __name__ == '__main__':
     import sys
